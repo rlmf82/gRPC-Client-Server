@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import grpc.DummyRequest;
 import grpc.DummyResponse;
@@ -82,6 +83,10 @@ public class GRPCClient {
 						.setName(name)
 						.build());        	
 			}
+
+			requestObserver.onCompleted();
+
+			finishLatch.await(1, TimeUnit.MINUTES);
 
 		}catch (Exception e) {
 			e.printStackTrace();
