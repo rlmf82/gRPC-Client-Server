@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package dummy;
+
+option java_package = "grpc";
+option java_multiple_files = true;
+
+message DummyRequest{
+	string name = 2;
+	int32 number1 = 1;
+	int32 number2 = 3;
+}
+
+message DummyResponse{
+	string result = 1;
+}
+
+service DummyService{
+	rpc greet(DummyRequest) returns (DummyResponse);
+	rpc sum(DummyRequest) returns (DummyResponse);
+	rpc manyTimes(DummyRequest) returns (stream DummyResponse);
+	rpc callNames(stream DummyRequest) returns (DummyResponse);
+}
