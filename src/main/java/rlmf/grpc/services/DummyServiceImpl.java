@@ -8,22 +8,14 @@ import io.grpc.stub.StreamObserver;
 public class DummyServiceImpl extends DummyServiceImplBase{
 
 	@Override
-	public void greet(DummyRequest request, StreamObserver<DummyResponse> responseObserver) {
+	public void unaryType(DummyRequest request, StreamObserver<DummyResponse> responseObserver) {
 		responseObserver.onNext(DummyResponse.newBuilder().setResult(String.format("Hello %s. Your RPC works.", request.getName())).build());
 		responseObserver.onCompleted();
 	}
 
-	@Override
-	public void sum(DummyRequest request, StreamObserver<DummyResponse> responseObserver) {
-
-		Integer result = request.getNumber1() + request.getNumber2();
-
-		responseObserver.onNext(DummyResponse.newBuilder().setResult(String.format("The sum is %s.", result)).build());
-		responseObserver.onCompleted();
-	}
 
 	@Override
-	public void manyTimes(DummyRequest request, StreamObserver<DummyResponse> responseObserver) {
+	public void serverStreaming(DummyRequest request, StreamObserver<DummyResponse> responseObserver) {
 
 		DummyResponse response = DummyResponse.newBuilder().setResult(String.format("Hello %s.", request.getName())).build();
 
@@ -33,7 +25,6 @@ public class DummyServiceImpl extends DummyServiceImplBase{
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -42,7 +33,7 @@ public class DummyServiceImpl extends DummyServiceImplBase{
 	}
 
 	@Override
-	public StreamObserver<DummyRequest> callNames(StreamObserver<DummyResponse> responseObserver) {
+	public StreamObserver<DummyRequest> clientStreaming(StreamObserver<DummyResponse> responseObserver) {
 
 		return new StreamObserver<DummyRequest>() {
 
@@ -67,6 +58,30 @@ public class DummyServiceImpl extends DummyServiceImplBase{
 						.build();
 
 				responseObserver.onNext(response);
+				responseObserver.onCompleted();
+			}
+		};
+	}
+	
+	@Override
+	public StreamObserver<DummyRequest> biDirectionalStreaming(StreamObserver<DummyResponse> responseObserver) {
+
+		return new StreamObserver<DummyRequest>() {
+
+			@Override
+			public void onNext(DummyRequest request) {
+				if(request.getName().length() > 5) {
+					responseObserver.onNext(DummyResponse.newBuilder().setResult("Hello: " + request.getName()).build());
+				}
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				System.out.println("Client cancelled.");
+			}
+
+			@Override
+			public void onCompleted() {
 				responseObserver.onCompleted();
 			}
 		};

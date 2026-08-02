@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package dummy;
+
+option java_package = "grpc";
+option java_multiple_files = true;
+
+message ErrorRequest{
+	int32 number1 = 1;
+	int32 number2 = 3;
+}
+
+message ErrorResponse{
+	string result = 1;
+}

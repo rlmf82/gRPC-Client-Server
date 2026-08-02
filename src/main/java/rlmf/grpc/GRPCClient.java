@@ -28,7 +28,7 @@ public class GRPCClient {
 		System.out.println("Calling gRPC");
 		//callBlockingStub(channel);
 
-		callStub(channel);
+		biDirectionalStreaming(channel);
 
 		System.out.println("Shutting Down");
 		channel.shutdown();
@@ -37,13 +37,18 @@ public class GRPCClient {
 	public static void callBlockingStub(ManagedChannel channel) {
 		DummyServiceGrpc.DummyServiceBlockingStub stub = DummyServiceGrpc.newBlockingStub(channel);
 
-		//DummyResponse response = stub.sum(DummyRequest.newBuilder().setNumber1(8).setNumber2(42).build());
-
-		Iterator<DummyResponse> response = stub.manyTimes(DummyRequest.newBuilder().setName("Rafael").build());
+		Iterator<DummyResponse> response = stub.serverStreaming(DummyRequest.newBuilder().setName("Rafael").build());
 		response.forEachRemaining(c -> System.out.println(c.getResult()));
 	}
 
-	public static void callStub(ManagedChannel channel) {
+	public static void unaryStub(ManagedChannel channel) {
+		DummyServiceGrpc.DummyServiceBlockingStub stub = DummyServiceGrpc.newBlockingStub(channel);
+
+		DummyResponse response = stub.unaryType(DummyRequest.newBuilder().setName("Rafael").build());
+		System.out.println(response.getResult());
+	}
+	
+	public static void clientStreaming(ManagedChannel channel) {
 		try {
 			DummyServiceGrpc.DummyServiceStub stub = DummyServiceGrpc.newStub(channel);
 
@@ -75,7 +80,7 @@ public class GRPCClient {
 			};
 
 			// Gets the stream used to send requests
-			StreamObserver<DummyRequest> requestObserver = stub.callNames(responseObserver);
+			StreamObserver<DummyRequest> requestObserver = stub.clientStreaming(responseObserver);
 
 			for(String name: names) {
 				requestObserver.onNext(
@@ -86,7 +91,57 @@ public class GRPCClient {
 
 			requestObserver.onCompleted();
 
-			finishLatch.await(1, TimeUnit.MINUTES);
+			finishLatch.await(5, TimeUnit.SECONDS);
+
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void biDirectionalStreaming(ManagedChannel channel) {
+		try {
+			DummyServiceGrpc.DummyServiceStub stub = DummyServiceGrpc.newStub(channel);
+
+			List<String> names = Arrays.asList("Rafael", "Lucas", "de", "Melo", "Farias");
+
+			CountDownLatch finishLatch = new CountDownLatch(1);
+
+			// Receives the server's single response
+			StreamObserver<DummyResponse> responseObserver =
+					new StreamObserver<DummyResponse>() {
+
+				@Override
+				public void onNext(DummyResponse response) {
+					System.out.println("Server replied:");
+					System.out.println(response.getResult());
+				}
+
+				@Override
+				public void onError(Throwable t) {
+					System.err.println("RPC failed: " + t.getMessage());
+					finishLatch.countDown();
+				}
+
+				@Override
+				public void onCompleted() {
+					System.out.println("RPC completed.");
+					finishLatch.countDown();
+				}
+			};
+
+			// Gets the stream used to send requests
+			StreamObserver<DummyRequest> requestObserver = stub.biDirectionalStreaming(responseObserver);
+
+			for(String name: names) {
+				requestObserver.onNext(
+						DummyRequest.newBuilder()
+						.setName(name)
+						.build());        	
+			}
+
+			requestObserver.onCompleted();
+
+			finishLatch.await(5, TimeUnit.SECONDS);
 
 		}catch (Exception e) {
 			e.printStackTrace();

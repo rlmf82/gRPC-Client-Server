@@ -5,6 +5,8 @@ package dummy;
 option java_package = "grpc";
 option java_multiple_files = true;
 
+import "proto/errors.proto";
+
 message DummyRequest{
 	string name = 2;
 	int32 number1 = 1;
@@ -16,8 +18,9 @@ message DummyResponse{
 }
 
 service DummyService{
-	rpc greet(DummyRequest) returns (DummyResponse);
-	rpc sum(DummyRequest) returns (DummyResponse);
-	rpc manyTimes(DummyRequest) returns (stream DummyResponse);
-	rpc callNames(stream DummyRequest) returns (DummyResponse);
+	rpc unaryType(DummyRequest) returns (DummyResponse);
+	rpc serverStreaming(DummyRequest) returns (stream DummyResponse);
+	rpc clientStreaming(stream DummyRequest) returns (DummyResponse);
+	rpc biDirectionalStreaming(stream DummyRequest) returns (stream DummyResponse);
+	rpc gettingErrors(ErrorRequest) returns (ErrorResponse);
 }
