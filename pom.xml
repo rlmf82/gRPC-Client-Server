@@ -3,7 +3,10 @@
 	<groupId>rlmf</groupId>
 	<artifactId>gRPC-Client-Server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-
+	<properties>
+	    <maven.compiler.target>17</maven.compiler.target>
+	    <maven.compiler.source>17</maven.compiler.source>
+	</properties>
 	<dependencies>
 		<dependency>
 		  <groupId>io.grpc</groupId>

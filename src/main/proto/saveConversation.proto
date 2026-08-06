@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package dummy;
+
+option java_package = "grpc.conversation";
+option java_multiple_files = true;
+
+message NewConversationRequest{
+	string destinatary = 1;
+	string sender = 2;
+	string textMessage = 3;
+}
+
+message NewConversationResponse{
+	string result = 1;
+}
