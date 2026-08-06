@@ -15,5 +15,6 @@ public interface ConversationDAO {
 	public Optional<Conversation> getById(UUID id);
 	
 	public void update(Conversation conversation);
-	
+
+	public long getInformation(String type);
 }

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package dummy;
+package conversation;
 
 option java_package = "grpc.conversation";
 option java_multiple_files = true;
@@ -8,20 +8,11 @@ option java_multiple_files = true;
 import "saveConversation.proto";
 import "getConversation.proto";
 import "updateConversation.proto";
-
-message ConversationRequest{
-	string destinatary = 1;
-	string sender = 2;
-	string textMessage = 3;
-	int32 number2 = 4;
-}
-
-message ConversationResponse{
-	string result = 1;
-}
+import "getConversationInfo.proto";
 
 service ConversationService{
 	rpc save(NewConversationRequest) returns (NewConversationResponse);
 	rpc get(GetConversationRequest) returns (stream GetConversationResponse);
 	rpc update(stream UpdateConversationRequest) returns (UpdateConversationResponse);
+	rpc getConversationInfo(stream GetConversationInfoRequest) returns (stream GetConversationInfoResponse);
 }

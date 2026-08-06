@@ -40,4 +40,17 @@ public class ConversationDAOImpl implements ConversationDAO{
 		Optional<Conversation> conversation = conversations.stream().filter(c -> c.getId().equals(updatedConversation.getId())).findFirst();
 		conversation.get().setMessage(updatedConversation.getMessage());
 	}
+
+	@Override
+	public long getInformation(String type) {
+
+		//1-Number of Senders, 2-Number of Destinataries, 3-Number of Messages
+		return switch(type){
+			case "1" -> conversations.stream().map(Conversation::getSender).distinct().count();
+			case "2" -> conversations.stream().map(Conversation::getDestinatary).distinct().count();
+			case "3" -> conversations.size();
+			default -> throw new RuntimeException("Invalid conversation type");
+		};
+
+	}
 }

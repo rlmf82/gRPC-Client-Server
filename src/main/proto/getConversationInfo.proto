@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package conversation;
+
+option java_package = "grpc.conversation";
+option java_multiple_files = true;
+
+message GetConversationInfoRequest{
+	//1-Number of Senders, 2-Number of Destinataries, 3-Number of Messages
+	string type = 1;
+}
+
+message GetConversationInfoResponse{
+	string response = 1;
+}

@@ -1,5 +1,15 @@
 package rlmf.grpc;
 
+import grpc.*;
+import grpc.conversation.*;
+import io.grpc.ChannelCredentials;
+import io.grpc.Grpc;
+import io.grpc.ManagedChannel;
+import io.grpc.TlsChannelCredentials;
+import io.grpc.stub.StreamObserver;
+import rlmf.grpc.dtos.NewConversationDTO;
+import rlmf.grpc.services.ClientConversationServiceImpl;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -8,23 +18,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import grpc.DummyRequest;
-import grpc.DummyResponse;
-import grpc.DummyServiceGrpc;
-import grpc.ErrorRequest;
-import grpc.ErrorResponse;
-import grpc.conversation.ConversationServiceGrpc;
-import grpc.conversation.GetConversationResponse;
-import grpc.conversation.UpdateConversationRequest;
-import grpc.conversation.UpdateConversationResponse;
-import io.grpc.ChannelCredentials;
-import io.grpc.Grpc;
-import io.grpc.ManagedChannel;
-import io.grpc.TlsChannelCredentials;
-import io.grpc.stub.StreamObserver;
-import rlmf.grpc.dtos.NewConversationDTO;
-import rlmf.grpc.services.ClientConversationServiceImpl;
 
 public class GRPCClient {
 
@@ -53,6 +46,7 @@ public class GRPCClient {
 				 1 - Create a conversation
 				 2 - List my conversations
 				 3 - Open a conversation
+				 
 				99 - Exit
 
 				Select an option: """;
@@ -60,7 +54,7 @@ public class GRPCClient {
 		mainFlow: while(true) {
 
 			if(sender == null) {
-				sender = showGreetings(scanner);	
+				sender = showGreetings(scanner);
 			}
 
 			System.out.print(menu);
@@ -68,53 +62,119 @@ public class GRPCClient {
 			String choice = scanner.next();
 
 			switch(choice) {
-			case "1" -> createNewConversation(scanner, sender);
-			case "2" -> listAllConversations(scanner, sender);
-			case "3" -> updateMessage(scanner, sender, channel);
-			default -> { break mainFlow;}
+				case "1" -> createNewConversation(scanner, sender);
+				case "2" -> listAllConversations(scanner, sender);
+				case "3" -> updateMessage(scanner, sender, channel);
+				case "4" -> getConversationInfo(scanner, sender, channel);
+				default -> { break mainFlow;}
 			}
 
 			//gettingError(channel, 14);
 			//gettingError(channel, -3);
 		}
-		
+
 		scanner.close();
 		channel.shutdown();
 		System.out.println("Shutting Down");
 	}
 
-	private static String updateMessage(Scanner scanner, String sender, ManagedChannel channel) {
-
-		System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
-		System.out.println("Inform the conversation id.\n");
-		String id = scanner.next();
-		scanner.nextLine();
-		
+	private static void getConversationInfo(Scanner scanner, String sender, ManagedChannel channel) {
 		try {
 			ConversationServiceGrpc.ConversationServiceStub stub = ConversationServiceGrpc.newStub(channel);
-			
+
+			CountDownLatch finishLatch = new CountDownLatch(1);
+
+			// Receives the server's single response
+			StreamObserver<GetConversationInfoResponse> responseObserver =
+					new StreamObserver<GetConversationInfoResponse>() {
+
+						@Override
+						public void onNext(GetConversationInfoResponse response) {
+							System.out.println("------------------------------------------");
+							System.out.println(response.getResponse());
+							System.out.println("------------------------------------------");
+						}
+
+						@Override
+						public void onError(Throwable t) {
+							System.err.println("RPC failed: " + t.getMessage());
+							finishLatch.countDown();
+						}
+
+						@Override
+						public void onCompleted() {
+							System.out.println("RPC completed.");
+							finishLatch.countDown();
+						}
+					};
+
+			// Gets the stream used to send requests
+			StreamObserver<GetConversationInfoRequest> requestObserver = stub.getConversationInfo(responseObserver);
+			System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
+
+			String type = """
+						Select one option:
+						
+						1-Number of senders
+						2-Number of Destinations
+						3-Number of conversations
+						""";
+
+			System.out.print(type);
+			String option = scanner.next();
+
+			GetConversationInfoRequest request =
+					GetConversationInfoRequest.newBuilder()
+							.setType(option)
+							.build();
+
+			requestObserver.onNext(request);
+
+			requestObserver.onCompleted();
+			finishLatch.await(5, TimeUnit.SECONDS);
+
+			System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
+			requestObserver.onCompleted();
+
+			finishLatch.await(5, TimeUnit.SECONDS);
+
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void updateMessage(Scanner scanner, String sender, ManagedChannel channel) {
+
+		System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
+		System.out.println("Inform the conversation id:\n");
+		String id = scanner.next();
+		scanner.nextLine();
+
+		try {
+			ConversationServiceGrpc.ConversationServiceStub stub = ConversationServiceGrpc.newStub(channel);
+
 			CountDownLatch finishLatch = new CountDownLatch(1);
 
 			// Receives the server's single response
 			StreamObserver<UpdateConversationResponse> responseObserver =
 					new StreamObserver<UpdateConversationResponse>() {
 
-				@Override
-				public void onNext(UpdateConversationResponse response) {
-					System.out.println(response.getResult());
-				}
+						@Override
+						public void onNext(UpdateConversationResponse response) {
+							System.out.println(response.getResult());
+						}
 
-				@Override
-				public void onError(Throwable t) {
-					System.err.println("RPC failed: " + t.getMessage());
-					finishLatch.countDown();
-				}
+						@Override
+						public void onError(Throwable t) {
+							System.err.println("RPC failed: " + t.getMessage());
+							finishLatch.countDown();
+						}
 
-				@Override
-				public void onCompleted() {
-					finishLatch.countDown();
-				}
-			};
+						@Override
+						public void onCompleted() {
+							finishLatch.countDown();
+						}
+					};
 
 			// Gets the stream used to send requests
 			StreamObserver<UpdateConversationRequest> requestObserver = stub.update(responseObserver);
@@ -127,11 +187,11 @@ public class GRPCClient {
 						.setTextMessage(scanner.nextLine())
 						.build();
 				requestObserver.onNext(request);
-				
+
 				System.out.println("Anything else? [Y/N]");
 				String anythingElse = scanner.next();
-				scanner.nextLine();				
-				
+				scanner.nextLine();
+
 				if(!anythingElse.equalsIgnoreCase("Y")) {
 					requestObserver.onCompleted();
 					finishLatch.await(5, TimeUnit.SECONDS);
@@ -139,9 +199,8 @@ public class GRPCClient {
 				}
 			}
 			System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
-			return "Message updated";
 		}catch (Exception e) {
-			return e.getMessage();
+			e.printStackTrace();
 		}
 	}
 
@@ -187,22 +246,12 @@ public class GRPCClient {
 		return name;
 	}
 
-	public static void callBlockingStub(ManagedChannel channel) {
-		DummyServiceGrpc.DummyServiceBlockingStub stub = DummyServiceGrpc.newBlockingStub(channel);
-
-		//Calling with deadline.
-		//stub.withDeadlineAfter(1000, TimeUnit.MILLISECONDS).gettingErrors(null);
-
-		Iterator<DummyResponse> response = stub.serverStreaming(DummyRequest.newBuilder().setName("Rafael").build());
-		response.forEachRemaining(c -> System.out.println(c.getResult()));
-	}
-
 	public static void gettingError(ManagedChannel channel, int number) {
 		DummyServiceGrpc.DummyServiceBlockingStub stub = DummyServiceGrpc.newBlockingStub(channel);
 
 		try {
 			ErrorResponse response = stub.gettingErrors(ErrorRequest.newBuilder().setNumber1(number).build());
-			System.out.println(response.getResult());	
+			System.out.println(response.getResult());
 		} catch (RuntimeException e) {
 			System.out.println(e.getMessage());
 		}
@@ -221,24 +270,24 @@ public class GRPCClient {
 			StreamObserver<DummyResponse> responseObserver =
 					new StreamObserver<DummyResponse>() {
 
-				@Override
-				public void onNext(DummyResponse response) {
-					System.out.println("Server replied:");
-					System.out.println(response.getResult());
-				}
+						@Override
+						public void onNext(DummyResponse response) {
+							System.out.println("Server replied:");
+							System.out.println(response.getResult());
+						}
 
-				@Override
-				public void onError(Throwable t) {
-					System.err.println("RPC failed: " + t.getMessage());
-					finishLatch.countDown();
-				}
+						@Override
+						public void onError(Throwable t) {
+							System.err.println("RPC failed: " + t.getMessage());
+							finishLatch.countDown();
+						}
 
-				@Override
-				public void onCompleted() {
-					System.out.println("RPC completed.");
-					finishLatch.countDown();
-				}
-			};
+						@Override
+						public void onCompleted() {
+							System.out.println("RPC completed.");
+							finishLatch.countDown();
+						}
+					};
 
 			// Gets the stream used to send requests
 			StreamObserver<DummyRequest> requestObserver = stub.biDirectionalStreaming(responseObserver);
@@ -246,8 +295,8 @@ public class GRPCClient {
 			for(String name: names) {
 				requestObserver.onNext(
 						DummyRequest.newBuilder()
-						.setName(name)
-						.build());        	
+								.setName(name)
+								.build());
 			}
 
 			requestObserver.onCompleted();

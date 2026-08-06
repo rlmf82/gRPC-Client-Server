@@ -1,24 +1,19 @@
 package rlmf.grpc.services;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 import grpc.conversation.ConversationServiceGrpc.ConversationServiceImplBase;
-import grpc.conversation.GetConversationRequest;
-import grpc.conversation.GetConversationResponse;
-import grpc.conversation.NewConversationRequest;
-import grpc.conversation.NewConversationResponse;
-import grpc.conversation.UpdateConversationRequest;
-import grpc.conversation.UpdateConversationResponse;
+import grpc.conversation.*;
 import io.grpc.stub.StreamObserver;
 import rlmf.grpc.daos.ConversationDAO;
 import rlmf.grpc.daos.ConversationDAOImpl;
 import rlmf.grpc.entities.Conversation;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 public class ConversationServiceImpl extends ConversationServiceImplBase {
 	
-	private ConversationDAO dao;
+	private final ConversationDAO dao;
 	
 	public ConversationServiceImpl(ConversationDAO dao) {
 		this.dao = dao;
@@ -31,7 +26,7 @@ public class ConversationServiceImpl extends ConversationServiceImplBase {
 		
 		this.dao.save(conversation);
 		
-		responseObserver.onNext(NewConversationResponse.newBuilder().setResult(String.format("New conversation saved")).build());
+		responseObserver.onNext(NewConversationResponse.newBuilder().setResult("New conversation saved").build());
 		responseObserver.onCompleted();
 	}
 	
@@ -91,6 +86,51 @@ public class ConversationServiceImpl extends ConversationServiceImplBase {
 						.build();
 
 				responseObserver.onNext(response);
+				responseObserver.onCompleted();
+			}
+		};
+	}
+
+	@Override
+	public StreamObserver<GetConversationInfoRequest>
+		getConversationInfo(StreamObserver<GetConversationInfoResponse> responseObserver){
+
+		return new StreamObserver<GetConversationInfoRequest>() {
+			private final ConversationDAO dao = new ConversationDAOImpl();
+
+			@Override
+			public void onNext(GetConversationInfoRequest request) {
+
+				//1-Number of Senders, 2-Number of Destinataries, 3-Number of Messages
+				String response = null;
+
+				switch (request.getType()){
+					case "1": {
+						response = "Number of senders: " + dao.getInformation(request.getType());
+						break;
+					}
+					case "2": {
+						response = "Number of destinations: " + dao.getInformation(request.getType());
+						break;
+					}
+					case "3": {
+						response = "Number of messages: " + dao.getInformation(request.getType());
+						break;
+					}
+					default:
+						throw new IllegalStateException("Unexpected value: " + request.getType());
+				}
+
+				responseObserver.onNext(GetConversationInfoResponse.newBuilder().setResponse(response).build());
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				System.out.println("Client cancelled.");
+			}
+
+			@Override
+			public void onCompleted() {
 				responseObserver.onCompleted();
 			}
 		};

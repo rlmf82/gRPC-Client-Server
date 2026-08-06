@@ -18,9 +18,6 @@ message DummyResponse{
 }
 
 service DummyService{
-	rpc unaryType(DummyRequest) returns (DummyResponse);
-	rpc serverStreaming(DummyRequest) returns (stream DummyResponse);
-	rpc clientStreaming(stream DummyRequest) returns (DummyResponse);
 	rpc biDirectionalStreaming(stream DummyRequest) returns (stream DummyResponse);
 	rpc gettingErrors(ErrorRequest) returns (ErrorResponse);
 }
