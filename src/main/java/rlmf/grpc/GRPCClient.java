@@ -1,7 +1,21 @@
 package rlmf.grpc;
 
-import grpc.*;
-import grpc.conversation.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import grpc.DummyServiceGrpc;
+import grpc.ErrorRequest;
+import grpc.ErrorResponse;
+import grpc.conversation.ConversationServiceGrpc;
+import grpc.conversation.GetConversationInfoRequest;
+import grpc.conversation.GetConversationInfoResponse;
+import grpc.conversation.GetConversationResponse;
+import grpc.conversation.UpdateConversationRequest;
+import grpc.conversation.UpdateConversationResponse;
 import io.grpc.ChannelCredentials;
 import io.grpc.Grpc;
 import io.grpc.ManagedChannel;
@@ -9,15 +23,6 @@ import io.grpc.TlsChannelCredentials;
 import io.grpc.stub.StreamObserver;
 import rlmf.grpc.dtos.NewConversationDTO;
 import rlmf.grpc.services.ClientConversationServiceImpl;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 public class GRPCClient {
 
@@ -46,7 +51,7 @@ public class GRPCClient {
 				 1 - Create a conversation
 				 2 - List my conversations
 				 3 - Open a conversation
-				 
+				 4 - Get conversation information
 				99 - Exit
 
 				Select an option: """;
@@ -113,12 +118,13 @@ public class GRPCClient {
 			System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
 
 			String type = """
-						Select one option:
+						Options:
 						
 						1-Number of senders
 						2-Number of Destinations
 						3-Number of conversations
-						""";
+						
+						Select one option:""";
 
 			System.out.print(type);
 			String option = scanner.next();
@@ -134,10 +140,6 @@ public class GRPCClient {
 			finishLatch.await(5, TimeUnit.SECONDS);
 
 			System.out.println("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-");
-			requestObserver.onCompleted();
-
-			finishLatch.await(5, TimeUnit.SECONDS);
-
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -256,55 +258,5 @@ public class GRPCClient {
 			System.out.println(e.getMessage());
 		}
 
-	}
-
-	public static void biDirectionalStreaming(ManagedChannel channel) {
-		try {
-			DummyServiceGrpc.DummyServiceStub stub = DummyServiceGrpc.newStub(channel);
-
-			List<String> names = Arrays.asList("Rafael", "Lucas", "de", "Melo", "Farias");
-
-			CountDownLatch finishLatch = new CountDownLatch(1);
-
-			// Receives the server's single response
-			StreamObserver<DummyResponse> responseObserver =
-					new StreamObserver<DummyResponse>() {
-
-						@Override
-						public void onNext(DummyResponse response) {
-							System.out.println("Server replied:");
-							System.out.println(response.getResult());
-						}
-
-						@Override
-						public void onError(Throwable t) {
-							System.err.println("RPC failed: " + t.getMessage());
-							finishLatch.countDown();
-						}
-
-						@Override
-						public void onCompleted() {
-							System.out.println("RPC completed.");
-							finishLatch.countDown();
-						}
-					};
-
-			// Gets the stream used to send requests
-			StreamObserver<DummyRequest> requestObserver = stub.biDirectionalStreaming(responseObserver);
-
-			for(String name: names) {
-				requestObserver.onNext(
-						DummyRequest.newBuilder()
-								.setName(name)
-								.build());
-			}
-
-			requestObserver.onCompleted();
-
-			finishLatch.await(5, TimeUnit.SECONDS);
-
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }

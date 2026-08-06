@@ -7,17 +7,6 @@ option java_multiple_files = true;
 
 import "errors.proto";
 
-message DummyRequest{
-	string name = 2;
-	int32 number1 = 1;
-	int32 number2 = 3;
-}
-
-message DummyResponse{
-	string result = 1;
-}
-
 service DummyService{
-	rpc biDirectionalStreaming(stream DummyRequest) returns (stream DummyResponse);
 	rpc gettingErrors(ErrorRequest) returns (ErrorResponse);
 }
